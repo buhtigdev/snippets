@@ -32,7 +32,7 @@ actions:
           }
 
       - type: merge-file
-        target: src/globals.css
+        target: src/app/globals.css
         content: |
           @tailwind base;
           @tailwind components;
