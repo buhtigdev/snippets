@@ -1,28 +1,65 @@
+# .buhtig.yml
 name: react-shadcn
-description: Boilerplate com React + shadcn/ui + TailwindCSS + Vite
-prompts:
-  - question: Qual será o nome da sua aplicação?
-    var: appName
-    default: my-app
+description: Adiciona componentes ShadCN a um projeto React com Tailwind CSS
+requirements:
+  language: javascript
+  framework: react
+  packageManagers: [pnpm, npm, yarn, bun]
+  dependencies:
+    react: ">=18"
+    tailwindcss: ">=3"
+    class-variance-authority: "*"
+    tailwind-variants: "*"
+  devDependencies:
+    postcss: "*"
+    autoprefixer: "*"
+    tailwindcss: "*"
 
-actions:
-  - type: replace_in_file
-    path: package.json
-    search: "name\": \".*\""
-    replace: "name\": \"{{appName}}\""
+steps:
+  - type: check
+    description: Verifica o gerenciador de pacotes utilizado
+    action: detect_package_manager
 
-  - type: run_command
-    command: pnpm install
+  - type: check
+    description: Verifica dependências instaladas
+    action: check_dependencies
 
-  - type: run_command
-    command: pnpm run dev
-    description: Inicia o servidor de desenvolvimento
+  - type: prompt
+    description: Algumas dependências estão faltando. Deseja instalar automaticamente?
+    condition: missing_dependencies
+    action: ask_user_confirmation
 
-  - type: edit_file
-    path: src/App.tsx
-    append: |
-      console.log("Projeto {{appName}} configurado com sucesso!");
+  - type: install
+    description: Instala as dependências necessárias
+    condition: user_agreed
+    action: install_dependencies
 
-post_message: |
-  ✅ Projeto {{appName}} configurado com sucesso!
-  👉 Rode `pnpm dev` se ainda não estiver rodando.
+  - type: modify
+    description: Adiciona diretório de componentes com botões
+    files:
+      - path: src/components/ui/button.tsx
+        content: |
+          import { cva } from "class-variance-authority"
+
+          export const button = cva("px-4 py-2 rounded", {
+            variants: {
+              variant: {
+                default: "bg-black text-white",
+                outline: "border border-black text-black"
+              }
+            },
+            defaultVariants: {
+              variant: "default"
+            }
+          })
+
+  - type: modify
+    description: Atualiza tailwind.config.js com o preset shadcn
+    action: patch_config
+    file: tailwind.config.js
+    insertAfter: "content: \\[.*\\],?"
+    content: |
+      presets: [require("tailwind-variants/preset")],
+
+  - type: done
+    message: Snippet react-shadcn aplicado com sucesso!
