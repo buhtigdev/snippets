@@ -1,5 +1,5 @@
 name: shadcn-all-components
-description: Instala todos os componentes disponíveis do shadcn/ui e configura Tailwind se necessário
+description: Instala todos os componentes do shadcn/ui e configura Tailwind CSS se necessário
 actions:
   - type: detect-package-manager
 
@@ -22,8 +22,8 @@ actions:
           /** @type {import('tailwindcss').Config} */
           module.exports = {
             content: [
-              "./index.html",
-              "./src/**/*.{js,ts,jsx,tsx}"
+              "./src/**/*.{js,ts,jsx,tsx}",
+              "./components/**/*.{js,ts,jsx,tsx}"
             ],
             theme: {
               extend: {},
@@ -56,6 +56,11 @@ actions:
       - @radix-ui/react-slot
       - @radix-ui/react-icons
 
+  - type: mkdir
+    dirs:
+      - src/components
+      - src/pages
+
   - type: run
     command: npx shadcn@latest init
 
@@ -66,11 +71,6 @@ actions:
       navigation-menu popover progress radio-group scroll-area
       select separator skeleton slider switch table tabs
       textarea toast toggle tooltip
-
-  - type: mkdir
-    dirs:
-      - src/components
-      - src/pages
 
   - type: merge-file
     target: src/index.tsx
