@@ -1,18 +1,50 @@
 name: shadcn-all-components
-description: Instala todos os componentes disponíveis do shadcn/ui no projeto
+description: Instala todos os componentes disponíveis do shadcn/ui e configura Tailwind se necessário
 actions:
   - type: detect-package-manager
+
+  - type: detect-file
+    path: tailwind.config.js
+    notFoundActions:
+      - type: install
+        dev: true
+        packages:
+          - tailwindcss
+          - postcss
+          - autoprefixer
+
+      - type: run
+        command: npx tailwindcss init -p
+
+      - type: merge-file
+        target: tailwind.config.js
+        content: |
+          /** @type {import('tailwindcss').Config} */
+          module.exports = {
+            content: [
+              "./index.html",
+              "./src/**/*.{js,ts,jsx,tsx}"
+            ],
+            theme: {
+              extend: {},
+            },
+            plugins: [require("@tailwindcss/forms")],
+          }
+
+      - type: merge-file
+        target: src/globals.css
+        content: |
+          @tailwind base;
+          @tailwind components;
+          @tailwind utilities;
 
   - type: install
     dev: true
     packages:
-      - tailwindcss
       - class-variance-authority
       - tailwind-variants
       - lucide-react
       - @tailwindcss/forms
-      - postcss
-      - autoprefixer
       - prettier
       - prettier-plugin-tailwindcss
 
