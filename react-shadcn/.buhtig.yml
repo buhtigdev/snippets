@@ -1,431 +1,86 @@
-name: react-19-shadcn-tailwind
-description: Adiciona componentes ShadCN a um projeto React 19 com Tailwind CSS
+name: shadcn-init-button
+description: Instala Tailwind se necessário e adiciona o componente "button" do shadcn/ui
 actions:
   - type: detect-package-manager
 
-  # Detectar ambiente IDE
-  - type: run
-    command: |
-      node -e "
-        const fs = require('fs');
-        const os = require('os');
-        const path = require('path');
-        
-        // Função para verificar arquivos comuns de cada IDE
-        function detectIDE() {
-          const ideSignatures = {
-            'vscode': ['.vscode/settings.json', '.vscode/launch.json'],
-            'intellij': ['.idea/workspace.xml', '.idea/misc.xml'],
-            'neovim': ['.nvim', '.nvimrc', 'init.vim'],
-            'cursor': ['.cursor/settings.json']
-          };
-          
-          let detectedIDE = 'unknown';
-          
-          for (const [ide, files] of Object.entries(ideSignatures)) {
-            for (const file of files) {
-              if (fs.existsSync(file)) {
-                detectedIDE = ide;
-                break;
-              }
-            }
-            if (detectedIDE !== 'unknown') break;
-          }
-          
-          // Salvar a IDE detectada em um arquivo temporário para uso posterior
-          fs.writeFileSync('.ide_detected', detectedIDE);
-          console.log(`IDE detectada: ${detectedIDE}`);
-        }
-        
-        detectIDE();
-      "
+  # Se Tailwind não estiver configurado, instala e inicializa
+  - type: detect-file
+    path: tailwind.config.js
+    notFoundActions:
+      - type: install
+        dev: true
+        packages:
+          - tailwindcss
+          - postcss
+          - autoprefixer
 
-  # Verificar versão do React e salvar informação
-  - type: run
-    command: |
-      node -e "
-        const fs = require('fs');
-        const { execSync } = require('child_process');
-        
-        try {
-          // Tentar ler o package.json para verificar a versão do React
-          let isReact19 = false;
-          if (fs.existsSync('package.json')) {
-            const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
-            
-            const reactVersion = packageJson.dependencies?.react || '';
-            if (reactVersion && reactVersion.startsWith('19')) {
-              isReact19 = true;
-            }
-            
-            console.log(`Versão do React detectada: ${reactVersion || 'não encontrada'}`);
-          } else {
-            console.log('package.json não encontrado');
-          }
-          
-          // Salvar a informação para uso posterior
-          fs.writeFileSync('.react_version', isReact19 ? '19' : 'other');
-          console.log(`React 19: ${isReact19 ? 'Sim' : 'Não'}`);
-        } catch (error) {
-          console.error('Erro ao detectar versão do React:', error.message);
-          fs.writeFileSync('.react_version', 'unknown');
-        }
-      "
+      - type: run
+        command: npx tailwindcss init -p
 
-  # Instalar dependências do Tailwind CSS
+      - type: merge-file
+        target: tailwind.config.js
+        content: |
+          /** @type {import('tailwindcss').Config} */
+          module.exports = {
+            content: [
+              "./src/**/*.{js,ts,jsx,tsx}",
+              "./components/**/*.{js,ts,jsx,tsx}"
+            ],
+            theme: {
+              extend: {},
+            },
+            plugins: [],
+          }
+
+      - type: merge-file
+        target: src/globals.css
+        content: |
+          @tailwind base;
+          @tailwind components;
+          @tailwind utilities;
+
+  # Instala dependências do shadcn/ui
   - type: install
     dev: true
     packages:
-      - tailwindcss
-      - postcss
-      - autoprefixer
-
-  # Inicializar Tailwind
-  - type: run
-    command: npx tailwindcss init -p
-
-  # Atualizar configuração do Tailwind de forma inteligente
-  - type: edit-file
-    target: tailwind.config.js
-    content: |
-      /** @type {import('tailwindcss').Config} */
-      module.exports = {
-        content: [
-          './app/**/*.{js,ts,jsx,tsx,mdx}',
-          './pages/**/*.{js,ts,jsx,tsx,mdx}',
-          './components/**/*.{js,ts,jsx,tsx,mdx}',
-          './src/**/*.{js,ts,jsx,tsx,mdx}',
-        ],
-        theme: {
-          extend: {},
-        },
-        plugins: [],
-      }
-    createIfNotExist: true
-
-  # Gerenciar globals.css de forma inteligente
-  - type: run
-    command: |
-      node -e "
-        const fs = require('fs');
-        const path = require('path');
-        
-        // Verificar e criar diretórios se necessário
-        const ensureDir = (dir) => {
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-            console.log(`Diretório ${dir} criado`);
-          }
-        };
-        
-        // Verificar se as diretivas Tailwind já estão presentes
-        const containsTailwindDirectives = (content) => {
-          return content.includes('@tailwind base') &&
-                 content.includes('@tailwind components') &&
-                 content.includes('@tailwind utilities');
-        };
-        
-        // Adicionar diretivas Tailwind no início do arquivo
-        const addTailwindDirectives = (filePath) => {
-          const directives = '@tailwind base;\\n@tailwind components;\\n@tailwind utilities;\\n\\n';
-          
-          if (fs.existsSync(filePath)) {
-            const content = fs.readFileSync(filePath, 'utf-8');
-            
-            if (!containsTailwindDirectives(content)) {
-              fs.writeFileSync(filePath, directives + content);
-              console.log(`Diretivas Tailwind adicionadas a ${filePath}`);
-            } else {
-              console.log(`${filePath} já contém diretivas Tailwind`);
-            }
-          } else {
-            ensureDir(path.dirname(filePath));
-            fs.writeFileSync(filePath, directives);
-            console.log(`Arquivo ${filePath} criado com diretivas Tailwind`);
-          }
-        };
-        
-        // Detectar estrutura do projeto - Next.js App Router vs. Traditional
-        let isNextAppRouter = fs.existsSync('src/app') || fs.existsSync('app');
-        console.log(`Estrutura Next.js App Router: ${isNextAppRouter ? 'Sim' : 'Não'}`);
-        
-        // Verificar e atualizar os possíveis locais do globals.css
-        const appGlobalsPath = 'src/app/globals.css';
-        const srcGlobalsPath = 'src/globals.css';
-        
-        // Primeiro tentar src/app/globals.css se parecer App Router
-        if (isNextAppRouter && (fs.existsSync(appGlobalsPath) || !fs.existsSync(srcGlobalsPath))) {
-          addTailwindDirectives(appGlobalsPath);
-          console.log('Usando src/app/globals.css para Tailwind');
-        } 
-        // Se não for App Router ou se src/globals.css já existir
-        else if (fs.existsSync(srcGlobalsPath)) {
-          addTailwindDirectives(srcGlobalsPath);
-          console.log('Usando src/globals.css para Tailwind');
-        } 
-        // Se nenhum dos dois existir, criar com base na estrutura
-        else {
-          if (isNextAppRouter) {
-            ensureDir('src/app');
-            addTailwindDirectives(appGlobalsPath);
-            console.log('Criado src/app/globals.css para Tailwind');
-          } else {
-            addTailwindDirectives(srcGlobalsPath);
-            console.log('Criado src/globals.css para Tailwind');
-          }
-        }
-      "
-
-  # Instalar dependências do Shadcn
-  - type: install
-    packages:
       - class-variance-authority
-      - clsx
-      - tailwind-merge
-      - lucide-react
+      - tailwind-variants
+      - prettier
+      - prettier-plugin-tailwindcss
 
-  # Criar diretórios necessários
+  - type: install
+    dev: false
+    packages:
+      - lucide-react
+      - react
+      - react-dom
+      - @radix-ui/react-slot
+      - @radix-ui/react-icons
+
+  # Garante pastas básicas
   - type: mkdir
     dirs:
-      - src/components/ui
-      - src/lib
+      - src/components
+      - src/pages
 
-  # Criar ou atualizar utils.ts de forma inteligente
-  - type: edit-file
-    target: src/lib/utils.ts
+  # Inicializa e adiciona o componente Button
+  - type: run
+    command: npx shadcn@latest init
+
+  - type: run
+    command: npx shadcn@latest add button
+
+  # Exemplo de uso
+  - type: merge-file
+    target: src/index.tsx
     content: |
-      import { type ClassValue, clsx } from 'clsx';
-      import { twMerge } from 'tailwind-merge';
-      
-      export function cn(...inputs: ClassValue[]) {
-        return twMerge(clsx(inputs));
+      import "./globals.css";
+      import { Button } from "@/components/ui/button";
+
+      export default function App() {
+        return (
+          <div className="p-4">
+            <Button>Botão funcionando</Button>
+          </div>
+        );
       }
-    createIfNotExist: true
-
-  # Criar components.json com base no globals.css encontrado
-  - type: run
-    command: |
-      node -e "
-        const fs = require('fs');
-        
-        // Determinar qual arquivo CSS está sendo usado
-        let cssPath = 'src/globals.css';
-        if (fs.existsSync('src/app/globals.css')) {
-          cssPath = 'src/app/globals.css';
-        }
-        
-        // Criar configuração components.json
-        const componentsConfig = {
-          '$schema': 'https://ui.shadcn.com/schema.json',
-          'style': 'default',
-          'rsc': false,
-          'tailwind': {
-            'config': 'tailwind.config.js',
-            'css': cssPath,
-            'baseColor': 'slate',
-            'cssVariables': false
-          },
-          'aliases': {
-            'components': '@/components',
-            'utils': '@/lib/utils'
-          }
-        };
-        
-        fs.writeFileSync('components.json', JSON.stringify(componentsConfig, null, 2));
-        console.log(`components.json criado apontando para ${cssPath}`);
-      "
-
-  # Instalar componentes Shadcn com base na versão do React
-  - type: run
-    command: |
-      node -e "
-        const { spawnSync } = require('child_process');
-        const fs = require('fs');
-        
-        function detectPackageManager() {
-          if (fs.existsSync('pnpm-lock.yaml')) return 'pnpm';
-          if (fs.existsSync('yarn.lock')) return 'yarn';
-          if (fs.existsSync('bun.lockb')) return 'bun';
-          return 'npm';
-        }
-        
-        async function installShadcnComponents() {
-          const packageManager = detectPackageManager();
-          
-          // Verificar se é React 19
-          let isReact19 = false;
-          
-          if (fs.existsSync('package.json')) {
-            try {
-              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-              if (pkg.dependencies?.react && pkg.dependencies.react.startsWith('19')) {
-                isReact19 = true;
-                console.log('Detectado React 19, usando flags legacy-peer-deps...');
-              }
-            } catch (e) {
-              console.log('Não foi possível ler package.json, assumindo React 19');
-              isReact19 = true;
-            }
-          } else {
-            // Se não tiver package.json, assume React 19 por ser este snippet
-            console.log('package.json não encontrado, assumindo React 19');
-            isReact19 = true;
-          }
-          
-          const components = [
-            'button',
-            'accordion',
-            'alert-dialog',
-            'alert',
-            'badge',
-            'card',
-            'checkbox',
-            'dialog',
-            'dropdown-menu',
-            'input',
-            'label',
-            'menubar',
-            'navigation-menu',
-            'popover',
-            'progress',
-            'radio-group',
-            'scroll-area',
-            'select',
-            'separator',
-            'skeleton',
-            'slider',
-            'switch',
-            'table',
-            'tabs',
-            'textarea',
-            'sonner',
-            'toggle',
-            'tooltip'
-          ];
-          
-          // Verificar se temos components.json
-          if (!fs.existsSync('components.json')) {
-            console.log('Criando components.json para shadcn...');
-            
-            // Determinar qual arquivo CSS está sendo usado
-            let cssPath = 'src/globals.css';
-            if (fs.existsSync('src/app/globals.css')) {
-              cssPath = 'src/app/globals.css';
-            }
-            
-            const componentsConfig = {
-              '$schema': 'https://ui.shadcn.com/schema.json',
-              'style': 'default',
-              'rsc': false,
-              'tailwind': {
-                'config': 'tailwind.config.js',
-                'css': cssPath,
-                'baseColor': 'slate',
-                'cssVariables': false
-              },
-              'aliases': {
-                'components': '@/components',
-                'utils': '@/lib/utils'
-              }
-            };
-            
-            fs.writeFileSync('components.json', JSON.stringify(componentsConfig, null, 2));
-          }
-          
-          // Comando para instalar o button primeiro
-          const buttonCmd = isReact19 
-            ? `${packageManager} ${packageManager === 'npm' ? '--legacy-peer-deps ' : ''}exec -- shadcn@latest add button --yes`
-            : `${packageManager} exec -- shadcn@latest add button --yes`;
-          
-          console.log(`Executando: ${buttonCmd}`);
-          let result = spawnSync(buttonCmd, { shell: true, stdio: 'inherit' });
-          
-          if (result.status !== 0) {
-            console.log('Falha ao instalar o componente button, tentando configurar o ambiente...');
-            
-            // Verificar tailwind.config.js
-            if (!fs.existsSync('tailwind.config.js')) {
-              console.log('Criando tailwind.config.js...');
-              fs.writeFileSync('tailwind.config.js', `/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    './app/**/*.{js,ts,jsx,tsx,mdx}',
-    './pages/**/*.{js,ts,jsx,tsx,mdx}',
-    './components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-}`);
-            }
-            
-            // Verificar globals.css
-            const appCssPath = 'src/app/globals.css';
-            const srcCssPath = 'src/globals.css';
-            const cssContent = '@tailwind base;\\n@tailwind components;\\n@tailwind utilities;\\n';
-            
-            if (!fs.existsSync(appCssPath) && !fs.existsSync(srcCssPath)) {
-              console.log('Criando arquivo CSS com diretivas Tailwind...');
-              
-              // Criar diretório se necessário
-              if (!fs.existsSync('src/app')) {
-                fs.mkdirSync('src/app', { recursive: true });
-              }
-              
-              fs.writeFileSync(appCssPath, cssContent);
-              console.log(`Arquivo ${appCssPath} criado.`);
-            }
-            
-            // Criar diretórios para componentes
-            if (!fs.existsSync('src/components/ui')) {
-              fs.mkdirSync('src/components/ui', { recursive: true });
-            }
-            
-            if (!fs.existsSync('src/lib')) {
-              fs.mkdirSync('src/lib', { recursive: true });
-            }
-            
-            // Criar utils.ts se não existir
-            if (!fs.existsSync('src/lib/utils.ts')) {
-              console.log('Criando src/lib/utils.ts...');
-              fs.writeFileSync('src/lib/utils.ts', `import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
-`);
-            }
-            
-            // Tentar instalar o button novamente
-            console.log('Tentando instalar o componente button novamente...');
-            result = spawnSync(buttonCmd, { shell: true, stdio: 'inherit' });
-            
-            if (result.status !== 0) {
-              console.log('Falhou novamente ao instalar o componente button. Parando a instalação dos componentes.');
-              return;
-            }
-          }
-          
-          // Se o button foi instalado com sucesso, instalar os demais componentes
-          for (const component of components.slice(1)) {
-            const cmd = isReact19 
-              ? `${packageManager} ${packageManager === 'npm' ? '--legacy-peer-deps ' : ''}exec -- shadcn@latest add ${component} --yes`
-              : `${packageManager} exec -- shadcn@latest add ${component} --yes`;
-            
-            console.log(`Instalando componente: ${component}`);
-            try {
-              spawnSync(cmd, { shell: true, stdio: 'inherit' });
-              console.log(`Componente ${component} instalado com sucesso.`);
-            } catch (error) {
-              console.error(`Erro ao instalar ${component}: ${error.message}`);
-            }
-          }
-          
-          console.log('Instalação de componentes concluída');
-        }
-        
-        installShadcnComponents().catch(console.error);
-      " 
