@@ -1,87 +1,95 @@
-name: shadcn-all-components
-description: Instala todos os componentes do shadcn/ui e configura Tailwind CSS se necessário
+name: react-shadcn
+description: Adiciona componentes ShadCN a um projeto React com Tailwind CSS
 actions:
   - type: detect-package-manager
 
+  # Verificar e instalar dependências necessárias
+  - type: install
+    dev: true
+    packages:
+      - tailwindcss
+      - postcss
+      - autoprefixer
+
+  # Verificar se tailwind.config.js existe
   - type: detect-file
     path: tailwind.config.js
     notFoundActions:
-      - type: install
-        dev: true
-        packages:
-          - tailwindcss
-          - postcss
-          - autoprefixer
-
       - type: run
         command: npx tailwindcss init -p
-
+      
       - type: merge-file
         target: tailwind.config.js
         content: |
           /** @type {import('tailwindcss').Config} */
           module.exports = {
             content: [
-              "./src/**/*.{js,ts,jsx,tsx}",
-              "./components/**/*.{js,ts,jsx,tsx}"
+              "./app/**/*.{js,ts,jsx,tsx,mdx}",
+              "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+              "./components/**/*.{js,ts,jsx,tsx,mdx}",
+              "./src/**/*.{js,ts,jsx,tsx,mdx}",
             ],
             theme: {
               extend: {},
             },
-            plugins: [require("@tailwindcss/forms")],
+            plugins: [],
           }
 
+  # Verificar se globals.css existe e tem as diretivas Tailwind
+  - type: detect-file
+    path: src/globals.css
+    notFoundActions:
       - type: merge-file
-        target: src/app/globals.css
+        target: src/globals.css
         content: |
           @tailwind base;
           @tailwind components;
           @tailwind utilities;
 
-  - type: install
-    dev: true
-    packages:
-      - class-variance-authority
-      - tailwind-variants
-      - lucide-react
-      - @tailwindcss/forms
-      - prettier
-      - prettier-plugin-tailwindcss
-
-  - type: install
-    dev: false
-    packages:
-      - react
-      - react-dom
-      - @radix-ui/react-slot
-      - @radix-ui/react-icons
-
-  - type: mkdir
-    dirs:
-      - src/components
-      - src/pages
-
+  # Verificar se components.json existe
+  - type: detect-file
+    path: components.json
+    notFoundActions:
+      - type: install
+        packages:
+          - class-variance-authority
+          - clsx
+          - tailwind-merge
+          - lucide-react
+      
+      - type: merge-file
+        target: components.json
+        content: |
+          {
+            "$schema": "https://ui.shadcn.com/schema.json",
+            "style": "default",
+            "rsc": false,
+            "tailwind": {
+              "config": "tailwind.config.js",
+              "css": "src/globals.css",
+              "baseColor": "slate",
+              "cssVariables": false
+            },
+            "aliases": {
+              "components": "@/components",
+              "utils": "@/lib/utils"
+            }
+          }
+      
+      - type: mkdir
+        dirs:
+          - src/components/ui
+          - src/lib
+      
+      - type: merge-file
+        target: src/lib/utils.ts
+        content: |
+          import { type ClassValue, clsx } from "clsx"
+          import { twMerge } from "tailwind-merge"
+          
+          export function cn(...inputs: ClassValue[]) {
+            return twMerge(clsx(inputs))
+          }
+          
   - type: run
-    command: npx shadcn@latest init
-
-  - type: run
-    command: |
-      npx shadcn@latest add accordion alert-dialog alert badge button card
-      checkbox dialog dropdown-menu input label menubar
-      navigation-menu popover progress radio-group scroll-area
-      select separator skeleton slider switch table tabs
-      textarea toast toggle tooltip
-
-  - type: merge-file
-    target: src/index.tsx
-    content: |
-      import "./globals.css";
-      import { Button } from "@/components/ui/button";
-
-      export default function App() {
-        return (
-          <div className="p-4">
-            <Button>shadcn/ui funcionando</Button>
-          </div>
-        );
-      }
+    command: npx shadcn@latest add accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea toast toggle tooltip
