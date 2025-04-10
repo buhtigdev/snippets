@@ -29,7 +29,7 @@ actions:
 
   - type: run
     command: |
-      npx shadcn-ui@latest add accordion alert-dialog alert badge button card
+      npx shadcn@latest add accordion alert-dialog alert badge button card
       checkbox dialog dropdown-menu input label menubar
       navigation-menu popover progress radio-group scroll-area
       select separator skeleton slider switch table tabs
