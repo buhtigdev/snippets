@@ -25,7 +25,7 @@ actions:
       - @radix-ui/react-icons
 
   - type: run
-    command: npx shadcn-ui@latest init
+    command: npx shadcn@latest init
 
   - type: run
     command: |
