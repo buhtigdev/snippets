@@ -1,11 +1,28 @@
-name: React + Tailwind + shadcn/ui
-description: Boilerplate básico com React + TailwindCSS + shadcn/ui
-tags:
-  - react
-  - tailwind
-  - shadcn
-  - vite
-  - ui
+name: react-shadcn
+description: Boilerplate com React + shadcn/ui + TailwindCSS + Vite
 prompts:
-  install_dependencies: true
-  run_dev_server: false
+  - question: Qual será o nome da sua aplicação?
+    var: appName
+    default: my-app
+
+actions:
+  - type: replace_in_file
+    path: package.json
+    search: "name\": \".*\""
+    replace: "name\": \"{{appName}}\""
+
+  - type: run_command
+    command: pnpm install
+
+  - type: run_command
+    command: pnpm run dev
+    description: Inicia o servidor de desenvolvimento
+
+  - type: edit_file
+    path: src/App.tsx
+    append: |
+      console.log("Projeto {{appName}} configurado com sucesso!");
+
+post_message: |
+  ✅ Projeto {{appName}} configurado com sucesso!
+  👉 Rode `pnpm dev` se ainda não estiver rodando.
