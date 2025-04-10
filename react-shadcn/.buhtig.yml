@@ -1,0 +1,55 @@
+name: shadcn-all-components
+description: Instala todos os componentes disponíveis do shadcn/ui no projeto
+actions:
+  - type: detect-package-manager
+
+  - type: install
+    dev: true
+    packages:
+      - tailwindcss
+      - class-variance-authority
+      - tailwind-variants
+      - lucide-react
+      - @tailwindcss/forms
+      - postcss
+      - autoprefixer
+      - prettier
+      - prettier-plugin-tailwindcss
+
+  - type: install
+    dev: false
+    packages:
+      - react
+      - react-dom
+      - @radix-ui/react-slot
+      - @radix-ui/react-icons
+
+  - type: run
+    command: npx shadcn-ui@latest init
+
+  - type: run
+    command: |
+      npx shadcn-ui@latest add accordion alert-dialog alert badge button card
+      checkbox dialog dropdown-menu input label menubar
+      navigation-menu popover progress radio-group scroll-area
+      select separator skeleton slider switch table tabs
+      textarea toast toggle tooltip
+
+  - type: mkdir
+    dirs:
+      - src/components
+      - src/pages
+
+  - type: merge-file
+    target: src/index.tsx
+    content: |
+      import "./globals.css";
+      import { Button } from "@/components/ui/button";
+
+      export default function App() {
+        return (
+          <div className="p-4">
+            <Button>shadcn/ui funcionando</Button>
+          </div>
+        );
+      }
