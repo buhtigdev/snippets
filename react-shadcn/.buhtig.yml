@@ -91,24 +91,11 @@ actions:
             return twMerge(clsx(inputs))
           }
 
-  # Verificar se estamos usando React 19
+  # Detectar React 19 com comando simples
   - type: run
-    command: node -e "const fs = require('fs'); try { const pkg = JSON.parse(fs.readFileSync('./package.json')); const isReact19 = pkg.dependencies && pkg.dependencies.react && pkg.dependencies.react.startsWith('19'); console.log(isReact19 ? 'REACT19=true' : 'REACT19=false'); fs.writeFileSync('./.react-version', isReact19 ? 'true' : 'false'); } catch(e) { console.log('REACT19=false'); fs.writeFileSync('./.react-version', 'false'); }"
+    command: npx shadcn@latest add button
 
-  # Instalação dos componentes Shadcn UI - Para React 19
+  # Instalar todos os componentes (vai detectar React 19 automaticamente)
   - type: run
-    command: node -e "const fs = require('fs'); if (fs.readFileSync('./.react-version', 'utf-8').trim() === 'true') { console.log('⚠️ Detectado React 19. Usando --legacy-peer-deps para compatibilidade.'); } else { process.exit(1); }"
-    
-  - type: run
-    command: npm --legacy-peer-deps exec -- shadcn@latest add accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip
-
-  # Instalação dos componentes Shadcn UI - Para React <19
-  - type: run
-    command: node -e "const fs = require('fs'); if (fs.readFileSync('./.react-version', 'utf-8').trim() === 'false') { console.log('✅ Instalando componentes para versão padrão do React'); } else { process.exit(1); }"
-    
-  - type: run
-    command: npx shadcn@latest add accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip
-
-  # Limpeza do arquivo temporário
-  - type: run
-    command: node -e "const fs = require('fs'); try { fs.unlinkSync('./.react-version'); } catch(e) {}" 
+    command: |
+      npx shadcn@latest add accordion alert-dialog alert badge card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip 
