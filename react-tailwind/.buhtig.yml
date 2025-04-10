@@ -1,0 +1,43 @@
+name: react-tailwind
+description: Instala e configura Tailwind CSS em um projeto React.
+actions:
+  - type: detect-package-manager
+
+  - type: install
+    dev: true
+    packages:
+      - tailwindcss
+      - postcss
+      - autoprefixer
+
+  - type: run
+    command: npx tailwindcss init -p
+
+  - type: merge-file
+    target: tailwind.config.js
+    content: |
+      /** @type {import('tailwindcss').Config} */
+      module.exports = {
+        content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
+        theme: {
+          extend: {},
+        },
+        plugins: [],
+      };
+
+  - type: merge-file
+    target: postcss.config.js
+    content: |
+      module.exports = {
+        plugins: {
+          tailwindcss: {},
+          autoprefixer: {},
+        },
+      };
+
+  - type: merge-file
+    target: src/index.css
+    content: |
+      @tailwind base;
+      @tailwind components;
+      @tailwind utilities;
