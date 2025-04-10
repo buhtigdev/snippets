@@ -11,7 +11,7 @@ actions:
       - postcss
       - autoprefixer
 
-  # Verificar se tailwind.config.js existe
+  # Inicializar Tailwind se os arquivos de configuração não existirem
   - type: detect-file
     path: tailwind.config.js
     notFoundActions:
@@ -35,7 +35,39 @@ actions:
             plugins: [],
           }
 
-  # Verificar se globals.css existe e tem as diretivas Tailwind
+  # Verificar globals.css em src/app (caso de Next.js app router)
+  - type: detect-file
+    path: src/app/globals.css
+    notFoundActions:
+      # Se não existe, verificar se a pasta src/app existe
+      - type: detect-file
+        path: src/app
+        notFoundActions:
+          # Se a pasta src/app não existir, criar
+          - type: mkdir
+            dirs:
+              - src/app
+          - type: merge-file
+            target: src/app/globals.css
+            content: |
+              @tailwind base;
+              @tailwind components;
+              @tailwind utilities;
+
+  # Se src/app/globals.css existe, verificar se já tem as diretivas Tailwind
+  - type: run
+    command: |
+      if [ -f "src/app/globals.css" ]; then
+        if ! grep -q "@tailwind base" "src/app/globals.css"; then
+          echo -e "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n$(cat src/app/globals.css)" > src/app/globals.css.tmp
+          mv src/app/globals.css.tmp src/app/globals.css
+          echo "✅ Adicionadas diretivas Tailwind ao src/app/globals.css existente"
+        else
+          echo "✅ O arquivo src/app/globals.css já possui diretivas Tailwind"
+        fi
+      fi
+
+  # Verificar alternativo: src/globals.css (caso de setup mais antigo)
   - type: detect-file
     path: src/globals.css
     notFoundActions:
@@ -46,7 +78,20 @@ actions:
           @tailwind components;
           @tailwind utilities;
 
-  # Verificar se components.json existe
+  # Se src/globals.css existe, verificar se já tem as diretivas Tailwind
+  - type: run
+    command: |
+      if [ -f "src/globals.css" ]; then
+        if ! grep -q "@tailwind base" "src/globals.css"; then
+          echo -e "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n\n$(cat src/globals.css)" > src/globals.css.tmp
+          mv src/globals.css.tmp src/globals.css
+          echo "✅ Adicionadas diretivas Tailwind ao src/globals.css existente"
+        else
+          echo "✅ O arquivo src/globals.css já possui diretivas Tailwind"
+        fi
+      fi
+
+  # Atualizar o components.json para apontar para o arquivo correto
   - type: detect-file
     path: components.json
     notFoundActions:
@@ -57,6 +102,14 @@ actions:
           - tailwind-merge
           - lucide-react
       
+      - type: run
+        command: |
+          if [ -f "src/app/globals.css" ]; then
+            echo '{ "css": "src/app/globals.css" }' > .globals-path.json
+          else
+            echo '{ "css": "src/globals.css" }' > .globals-path.json
+          fi
+      
       - type: merge-file
         target: components.json
         content: |
@@ -66,7 +119,7 @@ actions:
             "rsc": false,
             "tailwind": {
               "config": "tailwind.config.js",
-              "css": "src/globals.css",
+              "css": "src/app/globals.css",
               "baseColor": "slate",
               "cssVariables": false
             },
@@ -75,6 +128,20 @@ actions:
               "utils": "@/lib/utils"
             }
           }
+      
+      # Corrigir o caminho do CSS no components.json caso seja necessário
+      - type: run
+        command: |
+          if [ -f ".globals-path.json" ]; then
+            CSS_PATH=$(node -e "console.log(JSON.parse(require('fs').readFileSync('.globals-path.json')).css)")
+            node -e "
+              const fs = require('fs');
+              const components = JSON.parse(fs.readFileSync('components.json'));
+              components.tailwind.css = '$CSS_PATH';
+              fs.writeFileSync('components.json', JSON.stringify(components, null, 2));
+            "
+            rm .globals-path.json
+          fi
       
       - type: mkdir
         dirs:
@@ -91,11 +158,10 @@ actions:
             return twMerge(clsx(inputs))
           }
 
-  # Detectar React 19 com comando simples
+  # Instalar componentes Shadcn
   - type: run
     command: npx shadcn@latest add button
 
-  # Instalar todos os componentes (vai detectar React 19 automaticamente)
+  # Instalar componentes adicionais
   - type: run
-    command: |
-      npx shadcn@latest add accordion alert-dialog alert badge card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip 
+    command: npx shadcn@latest add accordion alert-dialog alert badge card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip 
