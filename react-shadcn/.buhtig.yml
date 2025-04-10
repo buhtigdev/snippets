@@ -1,0 +1,11 @@
+name: React + Tailwind + shadcn/ui
+description: Boilerplate básico com React + TailwindCSS + shadcn/ui
+tags:
+  - react
+  - tailwind
+  - shadcn
+  - vite
+  - ui
+prompts:
+  install_dependencies: true
+  run_dev_server: false
