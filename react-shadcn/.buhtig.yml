@@ -46,13 +46,6 @@ actions:
           @tailwind components;
           @tailwind utilities;
 
-  # Verificar versão do React para determinar flags necessárias
-  - type: detect-file
-    path: package.json
-    notFoundActions:
-      - type: run
-        command: echo "Arquivo package.json não encontrado. Não é possível determinar a versão do React."
-  
   # Verificar se components.json existe
   - type: detect-file
     path: components.json
@@ -98,19 +91,24 @@ actions:
             return twMerge(clsx(inputs))
           }
 
-  # Instalação de todos os componentes Shadcn de uma só vez
+  # Verificar se estamos usando React 19
   - type: run
-    command: |
-      echo "🔍 Verificando a versão do React no package.json..."
-      
-      # Lista de componentes para instalar
-      SHADCN_COMPONENTS="accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip"
-      
-      # Verificar se estamos usando React 19
-      if grep -q "\"react\": \"^19" package.json || grep -q "\"react\": \"19" package.json; then
-        echo "⚠️ Detectado React 19. Usando --legacy-peer-deps para compatibilidade."
-        echo "📦 Instalando todos os componentes Shadcn UI com --legacy-peer-deps..."
-        npm --legacy-peer-deps exec -- shadcn@latest add $SHADCN_COMPONENTS
-      else
-        echo "📦 Instalando todos os componentes Shadcn UI..."
-        npx shadcn@latest add $SHADCN_COMPONENTS 
+    command: node -e "const fs = require('fs'); try { const pkg = JSON.parse(fs.readFileSync('./package.json')); const isReact19 = pkg.dependencies && pkg.dependencies.react && pkg.dependencies.react.startsWith('19'); console.log(isReact19 ? 'REACT19=true' : 'REACT19=false'); fs.writeFileSync('./.react-version', isReact19 ? 'true' : 'false'); } catch(e) { console.log('REACT19=false'); fs.writeFileSync('./.react-version', 'false'); }"
+
+  # Instalação dos componentes Shadcn UI - Para React 19
+  - type: run
+    command: node -e "const fs = require('fs'); if (fs.readFileSync('./.react-version', 'utf-8').trim() === 'true') { console.log('⚠️ Detectado React 19. Usando --legacy-peer-deps para compatibilidade.'); } else { process.exit(1); }"
+    
+  - type: run
+    command: npm --legacy-peer-deps exec -- shadcn@latest add accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip
+
+  # Instalação dos componentes Shadcn UI - Para React <19
+  - type: run
+    command: node -e "const fs = require('fs'); if (fs.readFileSync('./.react-version', 'utf-8').trim() === 'false') { console.log('✅ Instalando componentes para versão padrão do React'); } else { process.exit(1); }"
+    
+  - type: run
+    command: npx shadcn@latest add accordion alert-dialog alert badge button card checkbox dialog dropdown-menu input label menubar navigation-menu popover progress radio-group scroll-area select separator skeleton slider switch table tabs textarea sonner toggle tooltip
+
+  # Limpeza do arquivo temporário
+  - type: run
+    command: node -e "const fs = require('fs'); try { fs.unlinkSync('./.react-version'); } catch(e) {}" 
